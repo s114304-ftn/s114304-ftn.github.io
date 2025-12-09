@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <title>留言板 Demo</title>
+  <style>
+    body { font-family: system-ui, sans-serif; background:#f5f5f5; margin:0; padding:20px; }
+    .board { max-width: 800px; margin:0 auto; background:#fff; padding:20px; border-radius:10px; box-shadow:0 0 10px rgba(0,0,0,0.05); }
+    h1 { margin-top:0; }
+    .form-row { margin-bottom:10px; display:flex; gap:10px; flex-wrap:wrap; }
+    .form-row label { font-size:14px; }
+    textarea { width:100%; min-height:80px; resize:vertical; }
+    select, input[type="text"], button { padding:6px 8px; font-size:14px; }
+    button { cursor:pointer; border:none; border-radius:4px; background:#3498db; color:#fff; }
+    button.secondary { background:#eee; color:#333; }
+    button.danger { background:#e74c3c; color:#fff; }
+    .tag-filter, .tag-list { margin:10px 0; display:flex; flex-wrap:wrap; gap:6px; }
+    .tag { padding:3px 8px; border-radius:20px; font-size:12px; border:1px solid #ccc; cursor:pointer; }
+    .tag.active { background:#3498db; color:#fff; border-color:#3498db; }
+    .message { border-top:1px solid #eee; padding:12px 0; display:flex; gap:10px; }
+    .avatar { width:40px; height:40px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:bold; font-size:18px; flex-shrink:0; }
+    .msg-main { flex:1; }
+    .meta { font-size:12px; color:#666; margin-bottom:4px; display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+    .content { margin-bottom:6px; white-space:pre-wrap; word-break:break-word; }
+    .actions { font-size:12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .actions button { font-size:12px; padding:3px 6px; }
+    .tag-label { font-size:11px; padding:2px 6px; border-radius:12px; background:#eee; }
+    .reported { background:#fff8e6; }
+    .emoji-btns { display:flex; gap:5px; margin-top:4px; flex-wrap:wrap; }
+    .emoji-btns button { background:#ffe; border:1px solid #ddd; }
+    .small { font-size:11px; color:#999; }
+  </style>
+</head>
+<body>
+<div class="board">
+  <h1>匿名留言板</h1>
+  <p class="small">功能：匿名＋頭像、標籤、按讚、表符、髒話過濾、舉報。</p>
+
+  <!-- 發文表單 -->
+  <div id="form">
+    <div class="form-row">
+      <label>
+        暱稱（可留白＝匿名）：
+        <input type="text" id="nickname" placeholder="匿名">
+      </label>
+      <label>
+        標籤：
+        <select id="tag">
+          <option value="general">一般</option>
+          <option value="confess">告白</option>
+          <option value="rant">靠北</option>
+          <option value="thanks">感謝</option>
+          <option value="qa">問問題</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-row">
+      <textarea id="content" placeholder="想說什麼？"></textarea>
+    </div>
+    <div class="form-row">
+      <div class="emoji-btns">
+        <span class="small">快速插入表情：</span>
+        <button type="button" class="secondary emoji">😂</button>
+        <button type="button" class="secondary emoji">😡</button>
+        <button type="button" class="secondary emoji">🥹</button>
+        <button type="button" class="secondary emoji">👍</button>
+        <button type="button" class="secondary emoji">💀</button>
+      </div>
+      <div style="flex:1"></div>
+      <button id="submit">送出留言</button>
+    </div>
+    <p class="small">簡單規則：不要實名罵人、不要貼個資，有問題請用舉報。</p>
+  </div>
+
+  <!-- 標籤篩選 -->
+  <div class="tag-filter">
+    <span class="small">篩選標籤：</span>
+    <button class="tag active" data-filter="all">全部</button>
+    <button class="tag" data-filter="general">一般</button>
+    <button class="tag" data-filter="confess">告白</button>
+    <button class="tag" data-filter="rant">靠北</button>
+    <button class="tag" data-filter="thanks">感謝</button>
+    <button class="tag" data-filter="qa">問問題</button>
+  </div>
+
+  <!-- 留言列表 -->
+  <div id="list"></div>
+</div>
+
+<script>
+  // ====== 設定區 ======
+  const badWords = ["幹", "靠北", "白痴", "智障"]; // 自己慢慢加
+  const avatars = [
+    { bg: "#e74c3c", icon: "🦊" },
+    { bg: "#3498db", icon: "🐳" },
+    { bg: "#9b59b6", icon: "🐱" },
+    { bg: "#f1c40f", icon: "🐤" },
+    { bg: "#1abc9c", icon: "🐸" },
+    { bg: "#e67e22", icon: "🐯" }
+  ];
+
+  // ====== 狀態 ======
+  let messages = [];
+  let currentFilter = "all";
+
+  // 從 localStorage 載入
+  const saved = localStorage.getItem("demoMessages");
+  if (saved) {
+    try {
+      messages = JSON.parse(saved);
+    } catch (e) {
+      messages = [];
+    }
+  }
+
+  function save() {
+    localStorage.setItem("demoMessages", JSON.stringify(messages));
+  }
+
+  // ====== 工具函式 ======
+  function getRandomAvatar() {
+    const idx = Math.floor(Math.random() * avatars.length);
+    return avatars[idx];
+  }
+
+  function sanitizeProfanity(text) {
+    let result = text;
+    badWords.forEach(w => {
+      const reg = new RegExp(w, "gi");
+      const stars = "＊".repeat(w.length);
+      result = result.replace(reg, stars);
+    });
+    return result;
+  }
+
+  function formatTime(date) {
+    return date.getFullYear() + "/" +
+      (date.getMonth() + 1) + "/" +
+      date.getDate() + " " +
+      date.getHours().toString().padStart(2, "0") + ":" +
+      date.getMinutes().toString().padStart(2, "0");
+  }
+
+  function tagText(tag) {
+    switch (tag) {
+      case "confess": return "告白";
+      case "rant": return "靠北";
+      case "thanks": return "感謝";
+      case "qa": return "問問題";
+      default: return "一般";
+    }
+  }
+
+  // ====== 渲染 ======
+  const listEl = document.getElementById("list");
+
+  function render() {
+    listEl.innerHTML = "";
+    const show = messages.filter(m => currentFilter === "all" || m.tag === currentFilter);
+    show.forEach((m, index) => {
+      const div = document.createElement("div");
+      div.className = "message" + (m.reported ? " reported" : "");
+      div.dataset.index = index;
+
+      const avatarDiv = document.createElement("div");
+      avatarDiv.className = "avatar";
+      avatarDiv.style.background = m.avatar.bg;
+      avatarDiv.textContent = m.avatar.icon;
+
+      const main = document.createElement("div");
+      main.className = "msg-main";
+
+      const meta = document.createElement("div");
+      meta.className = "meta";
+      meta.innerHTML =
+        `<strong>${m.nickname || "匿名"}</strong>` +
+        `<span>· ${formatTime(new Date(m.time))}</span>` +
+        `<span class="tag-label">${tagText(m.tag)}</span>` +
+        (m.reported ? `<span class="small">已被舉報</span>` : "");
+
+      const content = document.createElement("div");
+      content.className = "content";
+      content.textContent = m.content; // 已經過濾髒話
+
+      const actions = document.createElement("div");
+      actions.className = "actions";
+
+      const likeBtn = document.createElement("button");
+      likeBtn.className = "secondary";
+      likeBtn.textContent = `👍 ${m.likes || 0}`;
+      likeBtn.addEventListener("click", () => {
+        m.likes = (m.likes || 0) + 1;
+        save();
+        render();
+      });
+
+      const emojiBtn = document.createElement("button");
+      emojiBtn.className = "secondary";
+      emojiBtn.textContent = `💬 表情 +1 (${m.emojis || 0})`;
+      emojiBtn.addEventListener("click", () => {
+        m.emojis = (m.emojis || 0) + 1;
+        save();
+        render();
+      });
+
+      const reportBtn = document.createElement("button");
+      reportBtn.className = "danger";
+      reportBtn.textContent = "舉報";
+      reportBtn.addEventListener("click", () => {
+        if (confirm("確定要舉報這則留言嗎？")) {
+          m.reported = true;
+          save();
+          render();
+        }
+      });
+
+      actions.appendChild(likeBtn);
+      actions.appendChild(emojiBtn);
+      actions.appendChild(reportBtn);
+
+      main.appendChild(meta);
+      main.appendChild(content);
+      main.appendChild(actions);
+
+      div.appendChild(avatarDiv);
+      div.appendChild(main);
+      listEl.appendChild(div);
+    });
+  }
+
+  // ====== 發文事件 ======
+  document.getElementById("submit").addEventListener("click", () => {
+    const nickname = document.getElementById("nickname").value.trim();
+    const tag = document.getElementById("tag").value;
+    const contentRaw = document.getElementById("content").value.trim();
+
+    if (!contentRaw) {
+      alert("請先輸入內容");
+      return;
+    }
+
+    const filtered = sanitizeProfanity(contentRaw);
+    const avatar = getRandomAvatar();
+
+    const msg = {
+      nickname: nickname || "",
+      tag,
+      content: filtered,
+      time: new Date().toISOString(),
+      avatar,
+      likes: 0,
+      emojis: 0,
+      reported: false
+    };
+
+    messages.unshift(msg);
+    save();
+    document.getElementById("content").value = "";
+    render();
+  });
+
+  // 表情快速插入
+  document.querySelectorAll(".emoji").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = document.getElementById("content");
+      t.value += btn.textContent;
+      t.focus();
+    });
+  });
+
+  // ====== 標籤篩選 ======
+  document.querySelectorAll(".tag-filter .tag").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".tag-filter .tag").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // 初始化畫面
+  render();
+</script>
+</body>
+</html>
