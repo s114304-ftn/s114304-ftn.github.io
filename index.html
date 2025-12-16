@@ -275,6 +275,19 @@
     });
   });
 
+  // 刪掉超過 24 小時的留言
+function removeExpiredMessages() {
+  const now = Date.now();
+  const DAY_MS = 24 * 60 * 60 * 1000; // 24 小時
+
+  messages = messages.filter(m => {
+    const t = new Date(m.time).getTime();
+    return now - t <= DAY_MS;
+  });
+
+  save();
+}
+
   // 初始化畫面
   render();
 </script>
