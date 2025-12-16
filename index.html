@@ -288,17 +288,6 @@ function removeExpiredMessages() {
   save();
 }
 
-// 從 localStorage 載入
-const saved = localStorage.getItem("msgBoardMessages");
-if (saved) {
-  try {
-    messages = JSON.parse(saved);
-  } catch (e) {
-    messages = [];
-    localStorage.removeItem("msgBoardMessages");
-  }
-}
-
 // 載入後先清一次過期留言
 removeExpiredMessages();
 
