@@ -75,6 +75,7 @@
     <span class="small">篩選標籤：</span>
     <button class="tag active" data-filter="all">全部</button>
     <button class="tag" data-filter="general">一般</button>
+    <button class="tag" data-filter="general">抱怨</button>
     <button class="tag" data-filter="thanks">感謝</button>
     <button class="tag" data-filter="qa">問問題</button>
   </div>
@@ -141,6 +142,7 @@
     switch (tag) {
       case "thanks": return "感謝";
       case "qa": return "問問題";
+      case "rant": return "抱怨";
       default: return "一般";
     }
   }
