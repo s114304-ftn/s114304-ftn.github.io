@@ -187,6 +187,16 @@
         save();
         render();
       });
+      
+      const emojiBtn = document.createElement("button");
+      emojiBtn.className = "secondary";
+      emojiBtn.textContent = `💬 表符 ${m.emojis || 0}`;
+      emojiBtn.addEventListener("click", () => {
+        m.emojis = (m.emojis || 0) + 1;
+        save();
+        render();
+      });
+
 
       const reportBtn = document.createElement("button");
       reportBtn.className = "danger";
