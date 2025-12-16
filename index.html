@@ -47,8 +47,7 @@
         標籤：
         <select id="tag">
           <option value="general">一般</option>
-          <option value="confess">告白</option>
-          <option value="rant">靠北</option>
+          <option value="rant">抱怨</option>
           <option value="thanks">感謝</option>
           <option value="qa">問問題</option>
         </select>
@@ -62,7 +61,6 @@
         <span class="small">快速插入表情：</span>
         <button type="button" class="secondary emoji">😂</button>
         <button type="button" class="secondary emoji">😡</button>
-        <button type="button" class="secondary emoji">🥹</button>
         <button type="button" class="secondary emoji">👍</button>
         <button type="button" class="secondary emoji">💀</button>
       </div>
@@ -77,8 +75,6 @@
     <span class="small">篩選標籤：</span>
     <button class="tag active" data-filter="all">全部</button>
     <button class="tag" data-filter="general">一般</button>
-    <button class="tag" data-filter="confess">告白</button>
-    <button class="tag" data-filter="rant">靠北</button>
     <button class="tag" data-filter="thanks">感謝</button>
     <button class="tag" data-filter="qa">問問題</button>
   </div>
@@ -89,7 +85,7 @@
 
 <script>
   // ====== 設定區 ======
-  const badWords = ["幹", "靠北", "白痴", "智障"]; // 自己慢慢加
+  const badWords = ["幹", "靠", "白痴", "智障"]; // 自己慢慢加
   const avatars = [
     { bg: "#e74c3c", icon: "🦊" },
     { bg: "#3498db", icon: "🐳" },
@@ -143,8 +139,6 @@
 
   function tagText(tag) {
     switch (tag) {
-      case "confess": return "告白";
-      case "rant": return "靠北";
       case "thanks": return "感謝";
       case "qa": return "問問題";
       default: return "一般";
